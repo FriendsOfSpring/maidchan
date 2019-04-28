@@ -2,7 +2,7 @@ var _ = Underscore.load();
 function doPost(e) {
 
 
-  //114514
+  //もどってきた
   /*
   e={"parameter":{"token":"vsxgQ4ZnbB9yohryEHy0Y05s",
   "channel_id":"bot_test",
