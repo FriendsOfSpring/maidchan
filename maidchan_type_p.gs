@@ -931,7 +931,10 @@ function lanove_notify(){
 
   //  発売日が過去のものを削除する
   for(i=0;i<data.length;i++){
-    if((data[i][1]<now_month&&data[i][5]<=now_year)||(data[i][0]==="")){
+
+    //    Logger.log("data["+i+"][1]:"+data[i][1]+",now_month:"+now_month+",data["+i+"][5]:"+data[i][5]+",now_year"+now_year)
+
+    if((data[i][5]<now_year||data[i][1]<now_month)||(data[i][0]==="")){
       null_column_list.unshift(i+1);
     }
   }
@@ -942,6 +945,9 @@ function lanove_notify(){
   }
 
   data = sheet.getDataRange().getValues();
+  
+  
+  return;
 
   //発売日を通知していないものをslackで通知する。
   for(i=0;i<data.length;i++){
