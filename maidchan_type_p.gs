@@ -947,8 +947,6 @@ function lanove_notify(){
   data = sheet.getDataRange().getValues();
   
   
-  return;
-
   //発売日を通知していないものをslackで通知する。
   for(i=0;i<data.length;i++){
 
@@ -957,6 +955,7 @@ function lanove_notify(){
       slackpost_dm_team(domain(data[i][4]),data[i][4],body);
       sheet.getRange(i+1, 3+1).setValue(1);
     }
+  
   }
 
 }
