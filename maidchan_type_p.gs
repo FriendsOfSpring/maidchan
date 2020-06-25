@@ -1,7 +1,7 @@
 var _ = Underscore.load();
 function doPost(e) {
-
-
+  
+  
   //もどってきた
   /*
   e={"parameter":{"token":"vsxgQ4ZnbB9yohryEHy0Y05s",
@@ -12,40 +12,40 @@ function doPost(e) {
   }
   };
   */
-
-
+  
+  
   //種々の変数
   var body="";
   var bodies=new Array();
   var input_number,index,input;
   var myRegExp;
   var start;
-
-
+  
+  
   //機能を表す単語の配列
   var ability_words=["weather","math","route","list",
                      "hello","wiki","taqbin","lanove",
                      "search", "alarm", "task","email",
                      "schedule","fx", "news","anime","moon"];
-
+  
   //投稿者のメッセージを取得
   var text=e.parameter.text;
-
+  
   //投稿者の名前を取得
   var username=e.parameter.user_name;
-
+  
   //channel id,team domain,tokenを取得
   var channelId = e.parameter.channel_id;
   var team_domain=e.parameter.team_domain;
   var token = e.parameter.token;
-
-
+  
+  
   //outgoing webhooksのtokenを確認する
-
+  
   // hoge(Verify_token(team_domain,token));
-
+  
   if (Verify_token(team_domain,token)!=true) {throw new Error("invalid token.");}
-
+  
   //どの処理をするかの判定
   for (index=0;index<ability_words.length;index++){
     start=text.indexOf(ability_words[index]);
@@ -53,16 +53,16 @@ function doPost(e) {
       input_number=index;
       //text("@maidchan (ability words) ～")からinput("～")を取り出す
       input=text.slice(start+ability_words[index].length);
-
+      
     }
   }
-
+  
   //処理を行う
-
+  
   body="@"+username+" さま \n "
-
+  
   switch (input_number){
-
+      
     case 0:
       body+=weather(input);
       break;
@@ -123,7 +123,7 @@ function doPost(e) {
       body+="私は忙しいのです \n なので、ちゃんと入力しないとウイルスとか送っちゃうぞ(笑) \n ウィルスだって作れちゃうメイドちゃんより";
       break;
   }
-
+  
   //投稿
   bodies=split_4kilobytes(body);
   for (var index =0;index<bodies.length;index++)
@@ -139,16 +139,16 @@ function doPost(e) {
 
 
 function weather(input) {
-
+  
   cityID = get_cityid(input);
-
+  
   if(cityID) {
     url = "http://weather.livedoor.com/forecast/webservice/json/v1?city=" + cityID;
-
+    
     var response = UrlFetchApp.fetch(url);
-
+    
     var json = JSON.parse(response.getContentText());
-
+    
     answer = json["forecasts"][0]["date"] + "での" + json["title"] +"は" + json["forecasts"][0]["image"]["title"] + "。\n";
     if(json["forecasts"][0]["temperature"]["max"] != null) {
       answer += "最高気温は" + json["forecasts"][0]["temperature"]["max"]["celsius"] + "℃。";
@@ -160,41 +160,41 @@ function weather(input) {
   } else {
     answer = "その質問は答えられないぞ。\n\nメイドちゃんより";
   }
-
+  
   return answer;
 }
 
 function math(input){
-
+  
   //input = "plot sin(x)"
-
+  
   var prop = PropertiesService.getScriptProperties().getProperties();
-
+  
   //apiを叩くために、inputの文章を整える
   input=encodeURIComponent(input);
-
+  
   //wolfram alpha apiを叩く
   var result_xml=UrlFetchApp.fetch("http://api.wolframalpha.com/v2/query?input="+input+"&appid="+prop.waappid);
-
+  
   //結果から必要な要素(計算結果)を抜き出す
   var result_text=result_xml.getContentText();
   var result=XmlService.parse(result_xml.getContentText());
   var src=[],plaintexts=[];
   var body="";
-
-
+  
+  
   var root_e=result.getRootElement();
   var pods=root_e.getChildren();
   var IsSuccessful = root_e.getAttribute("success").toString().replace(/\[success\=|\'|\]/ig,"");
   var subpod;
   var interpret_src;
   var interpret;
-
+  
   if(IsSuccessful=="false"){
     body="申し訳ありませんが、別のキーワードをご入力ください\n\nメイドちゃんより";
     return body;
   }
-
+  
   for (var i in pods){
     if(pods[i].getAttribute("id")=="[id='Input']"){
       subpod=pods[i].getChildren("subpod")[0];
@@ -207,21 +207,21 @@ function math(input){
         plaintexts.push(subpod.getChild("plaintext").getText());
       }
     }
-
+    
   }
-
+  
   //メイドちゃんのセリフを作る
-
+  
   body+="『"+interpret+"』の計算結果は以下のとおりです!\n\n";//+interpret_src+"\n";
-
+  
   for (var i in src){
     body+=plaintexts[i]+"\n"
     if(plaintexts[i].length==0){
       body+=src[i]+"\n";}
   }
-
+  
   body+=" \n\n メイドちゃんより";
-
+  
   return body;
 }
 
@@ -230,14 +230,14 @@ function get_cityid(input) {
   var sheet = spreadsheet.getActiveSheet();
   var values = sheet.getDataRange().getValues();
   var data = {};
-
+  
   for (var i = 0, l = values.length; i < l; i++) {
     var key = values[i].shift();
     if (key.length > 0) {
       data[key] = values[i];
     }
   }
-
+  
   for(var city_name in data) {
     //inputにcity_nameが含まれるかどうか確認する
     if (input.match(city_name))
@@ -258,29 +258,29 @@ function root(input) {
   //inputの処理をする, startは出発地,endは到着地
   if (input.match(/.*から/ig) == null || input.match(/.*まで/ig) == null)
   return "〜から〜まで、の表記しか受け付けないぞ\nメイドちゃんより";
-
+  
   start = input.split("から")[0];
   end = input.split("から")[1].split("まで")[0];
-
+  
   //startとendの経度緯度を取得
   var startlatlng = get_latlng(start);
   var endlatlng = get_latlng(end);
-
+  
   //地図の作成
   var map = Maps.newStaticMap().setSize(400, 300)
   .setLanguage('ja')
   .setMapType(Maps.StaticMap.Type.ROADMAP);
-
+  
   //入力の確認
   if (startlatlng == 0 || endlatlng == 0)
     return "入力が間違っているぞ。\nメイドちゃんより";
-
+  
   //二点を結ぶルートを検索
   var root = Maps.newDirectionFinder()
   .setOrigin(startlatlng[0], startlatlng[1])
   .setDestination(endlatlng[0], endlatlng[1])
   .getDirections();
-
+  
   // パスの設定をし、パスの描画を開始
   map.setPathStyle(5, Maps.StaticMap.Color.GREEN, null);
   map.beginPath();
@@ -294,7 +294,7 @@ function root(input) {
     }
   }
   map.endPath();
-
+  
   // ２点のマーカーを表示
   map.setMarkerStyle(Maps.StaticMap.MarkerSize.MID,Maps.StaticMap.Color.RED,"A");
   map.addMarker(start);
@@ -306,23 +306,23 @@ function root(input) {
 }
 
 function hello() {
-
+  
   var prop = PropertiesService.getScriptProperties().getProperties();
-
+  
   //slackApp インスタンスの取得
   var slackApp = SlackApp.create(prop.token);
-
+  
   //投稿
   slackApp.chatPostMessage("self", "ハロー世界! \n```\n 何なりと御用をお申し付けくださいませ! \n```\n メイドちゃんより", {
     username : "メイドちゃん"
     ,icon_emoji:":maid:"
   });
-
+  
   SlackPost_dm("jan","ハロー世界!");
 }
 
 function wikipedia(input){
-
+  
   var keyword = encodeURIComponent(input);
   var response =UrlFetchApp.fetch("https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&redirects=1&exchars=300&explaintext=1&titles="+keyword);
   var data = JSON.parse(response.getContentText());
@@ -331,9 +331,9 @@ function wikipedia(input){
   var body="";
   if (result==null){body="Wikipediaで"+input+"についてお調べいたしましたが、見つかりませんでした。 \n 申し訳ありませんが、別のキーワードを入力してください \n\n メイドちゃんより"}
   else{ body="Wikipediaで"+input+"についてお調べいたしました! \n 結果は以下の通りです。 \n```\n "+result+" \n```\n メイドちゃんより";}
-
+  
   return body;
-
+  
 }
 
 function get_status(number){
@@ -343,7 +343,7 @@ function get_status(number){
   var latest_status;
   var status =getElementsByTagName(response.getRootElement(),"status")[0].getText();
   var status_code=getElementsByTagName(response.getRootElement(),"result")[0].getText();
-
+  
   if(status_code==0){
     latest_status=status;
   }else{
@@ -395,9 +395,9 @@ return latest_status;
 function taqbin(input,username){
   //input=""
   var body="";
-
+  
   input=input.replace(/\-/ig,"");
-
+  
   if(input.indexOf("reg")!=-1){
     body=taqbin_reg(input,username);
   }
@@ -407,32 +407,32 @@ function taqbin(input,username){
   else{
     body=get_taqbin_info(input,username);
   }
-
+  
   return body;
-
+  
 }
 function taqbin_reg(input,username){
   /*
   input="123456789123";
   username="jan";
   */
-
+  
   var body="";
   var number=input.match(/\d{12}/ig)[0];
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("taqbin");
   var data = sheet.getDataRange().getValues();
   var number_of_data=data.length;
   var index=0;
-
+  
   if(data[0][0]!=""){
-
+    
     while(index<number_of_data&&data[index][0]!=number&&data[index][0]!=""){
       index++;
     }
     if(index==number_of_data||data[index][0]==""){
-
+      
       data.push([number,get_status(number),username,0]);
-
+      
       /*
       data[index][0]=number
       data[index][1]=get_status(number);
@@ -443,19 +443,19 @@ function taqbin_reg(input,username){
       sheet.getRange(index+1, 3).setValue(username);
       sheet.getRange(index+1, 4).setValue(0);
       */
-
+      
       body="追跡番号"+number+"を登録いたしました \n 配達中か営業所に到着しましたらお知らせいたしますね! \n\n メイドちゃんより";
-
+      
     }else{
       body="追跡番号"+number+"はすでに登録されています! \n\n メイドちゃんより";
     }
   }else{
-
+    
     data[0][0]=number;
     data[0].push(get_status(number));
     data[0].push(username);
     data[0].push(0);
-
+    
     /*
     data[0][0]=number
     data[0][1]=get_status(number);
@@ -473,17 +473,17 @@ function taqbin_reg(input,username){
   return;
   */
   DataWrite(sheet,data);
-
+  
   return body;
 }
 
 function get_taqbin_info(input,username){
-
-
+  
+  
   if(!input.match(/\d{12}/ig)){
     return "正しい形式で追跡番号を入力してください!\n\nメイドちゃんより";
   }
-
+  
   var body="荷物追跡情報の取得に失敗しました。 \n\n メイドちゃんより";
   var trace_number=input.match(/\d{12}/ig)[0];
   var latest_status=get_status(trace_number);
@@ -495,43 +495,43 @@ function get_taqbin_info(input,username){
 
 function taqbin_all(username){
   //username="miya";
-
+  
   var body="";
-
+  
   //taqbinシートから配送情報を、更新して取得
   var data =taqbin_update();
-
+  
   if(data==null){
     body="登録されている追跡番号はありません\n\n メイドちゃんより";
     return body;
   }
-
+  
   //usernameがマッチするものだけをslackで通知する(ための文章を作る)
-
+  
   for(var i=0;i<data.length;i++){
-
+    
     if(data[i][2]==username){
       body+="追跡番号"+data[i][0]+"はただいま「"+data[i][1]+"」\n";
     }
   }
-
+  
   body+="です!\n\n メイドちゃんより";
-
+  
   return body;
 }
 
 function taqbin_update(){
-
+  
   //配達状況を更新して、更新済みデータを返す関数
-
+  
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("taqbin");
   var data = sheet.getDataRange().getValues();
   var number_of_data=data.length;
   var index=0;
   var status,trace_number;
-
+  
   if(data[0][0]==""&&number_of_data==1){return null;}
-
+  
   for(index=0;index<number_of_data;index++){
     try{
       trace_number=data[index][0];　
@@ -546,15 +546,15 @@ function taqbin_update(){
   }
   DataWrite(sheet,data);
   //data = sheet.getDataRange().getValues();
-
+  
   return data;
-
+  
 }
 
 function taqbin_notify(){
-
+  
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("taqbin");
-
+  
   //配達状況の更新
   var data =taqbin_update();//= sheet.getDataRange().getValues();
   if(data==null){return 0;}
@@ -562,18 +562,23 @@ function taqbin_notify(){
   var index=0;
   var status,username,trace_number,notified;
   var delete_row_list=[];
-
+  
   if(data==null){return 0;}
-
+  
   //配達状況に応じて、slackに通知する
-
+  
   for(index=0;index<number_of_data;index++){
-
+    
     trace_number=data[index][0];　
     status=data[index][1];
     username=data[index][2];
     notified=data[index][3];
-
+    
+    //    Logger.log(status)
+    //    Logger.log(status=="")
+    //    Logger.log(status)
+    
+    
     if(status.indexOf("配達中")!=-1&&notified==0){
       slackpost_dm_team(domain(username),username,"追跡番号"+trace_number+"は、ただいま配達中です!\n メイドちゃんより");
       // sheet.getRange(index+1, 3+1).setValue(1);
@@ -594,22 +599,26 @@ function taqbin_notify(){
       delete_row_list.unshift(index+1);
       //sheet.getRange(index+1, 0+1,1,data[0].length+1).clear();
     }
+    else if(status==""){
+      delete_row_list.unshift(index+1);
+    }
   }
-
+  
   sheet.getRange(1, 1,data.length,data[0].length).setValues(data)
-
+  
   for(var i in delete_row_list){
     sheet.deleteRow(delete_row_list[i]);
+    //    Logger.log("delete "+delete_row_list[i]+"th row")
   }
 }
 
 
 
 function taqbin_get(){
-
-  var taqbin_threads=GmailApp.search("subject:(amazon の発送)　is:unread");
+  
+  var taqbin_threads=GmailApp.search("subject:((amazon.co.jpでのご注文) (発送されました)) is:unread ");
   var taqbin_threads_yamato=GmailApp.search("subject:宅急便お届けのお知らせ is:unread");
-
+  
   /*taqbin_threads=GmailApp.search("subject:(amazon の発送)");
   taqbin_threads_yamato=GmailApp.search("subject:宅急便お届けのお知らせ");
   */
@@ -622,24 +631,24 @@ function taqbin_get(){
   var user_address="";
   var username;
   var m_adderess="maidchan.p@gmail.com";
-
+  
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("usermailadress");
   var data = sheet.getDataRange().getValues();
   var sheet_taqbin=SpreadsheetApp.getActiveSpreadsheet().getSheetByName("taqbin");
   var data_taqbin=sheet_taqbin.getDataRange().getValues();
-
+  
   var RegedNums=[];
   var DealtNums=[0];
-
+  
   for(var i=0;i<data_taqbin.length;i++){
     RegedNums.push(data_taqbin[i][0]);
   }
-
+  
   if(msgs!=null){
     for(var i=0;i<msgs.length;i++){
-
+      
       msg=msgs[i][0].getPlainBody();
-
+      
       if(msgs[i][0].getTo().indexOf(m_adderess)!=-1){
         user_address=
           msgs[i][0].getFrom().match(regExpFrom)[0].replace(/\<|\>/ig,"");
@@ -647,47 +656,55 @@ function taqbin_get(){
       else{
         user_address=msgs[i][0].getTo();
       }
-
+      
       for(var index=0;index<data.length;index++){
         if(data[index][0]==user_address){username=data[index][1];}
       }
-
+      
       if(msg.indexOf("ヤマト運輸")!=-1/*||msg.indexOf("日本郵便")!=-1||msg.indexOf("佐川急便")!=-1||msg.indexOf("ゆうパック")!=-1*/){
         msg=msg.match(regExp)[0];
         trace_number=parseFloat(msg.replace("お問い合わせ伝票番号は",""));
-
+        
         if(RegedNums.indexOf(trace_number)==-1&&DealtNums.indexOf(trace_number)==-1){
+          
+          //          Logger.log(trace_number)
+          //          
+          //          return
+          
           body=taqbin_reg("reg "+trace_number,username);
           Logger.log(body);
           slackpost_dm_team(domain(username),username,body);
           DealtNums.push(trace_number);
         }
       }
-
+      
       GmailApp.markThreadRead(taqbin_threads[i]);
     }
   }
-
+  
+  //  return
+  
+  
   msgs=GmailApp.getMessagesForThreads(taqbin_threads_yamato);
   if(msgs.length==0){return;}
-
+  
   for(var i=0;i<msgs.length;i++){
     msg=msgs[i][0].getPlainBody();
-
+    
     if(msgs[i][0].getTo().indexOf(m_adderess)!=-1){
       user_address=
         msgs[i][0].getFrom().match(regExpFrom)[0].replace(/\<|\>/ig,"");
     }else{
       user_address=msgs[i][0].getTo();
     }
-
+    
     for(var index=0;index<data.length;index++){
       if(data[index][0]==user_address){username=data[index][1];}
     }
-
+    
     msg=msg.match(/\d{4}\-\d{4}\-\d{4}/ig)[0];
     trace_number=parseFloat(msg.replace(/\-/ig,""));
-
+    
     if(RegedNums.indexOf(trace_number)==-1&&DealtNums.indexOf(trace_number)==-1){
       Logger.log(RegedNums.indexOf(trace_number))
       body=taqbin_reg("reg "+trace_number,username);
@@ -695,29 +712,29 @@ function taqbin_get(){
       slackpost_dm_team(domain(username),username,body);
       DealtNums.push(trace_number);
     }
-
+    
     GmailApp.markThreadRead(taqbin_threads_yamato[i]);
   }
-
-
+  
+  
 }
 
 function wunder(input){
-
+  
   var input="regi メール返信 0630"
   input="list";
-
+  
   var prop = PropertiesService.getScriptProperties().getProperties();
   var headers={
     "X-Client-ID": prop.wuclientid,
     "X-Access-Token": prop.wutoken,
     "Content-Type":"application/json"
   }
-
+  
   var params={
     headers:headers,
   };
-
+  
   var url = "https://a.wunderlist.com/api/v1/lists";
   var url_list="https://a.wunderlist.com/api/v1/tasks?list_id=";
   var tasks=[];
@@ -729,24 +746,24 @@ function wunder(input){
   day=today.getDate();
   tenday=new Date();
   tenday.setDate(day+10);
-
+  
   if(input.indexOf("list")!=-1){
-
+    
     for (var i in json){
       list_ids[i]=json[i]["id"];
-
+      
     };
     for (i in list_ids){
       strRespons = UrlFetchApp.fetch(url_list+list_ids[i], params);
       json = JSON.parse(strRespons.getContentText("UTF-8"));
       tasks[i]=json;
     }
-
+    
     for (i in tasks){
       for (var j in tasks[i]){
         date = new Date(tasks[i][j]["due_date"].replace(/\-/ig,"\/"));
         n_day=diff_day(today,date);
-
+        
         if(n_day<0)
         {
           Logger.log(tasks[i][j]["title"]+"は期限を"+(-1*n_day)+"日過ぎてるよ!");
@@ -770,10 +787,10 @@ function get_book_info(input) {
   var regexp_td = /<td>([\s\S]*?)<\/td>|<td align=\"center\">\d+<\/td>/ig;
   var match = (response.getContentText("UTF-8")).match(regexp_month);
   //Logger.log(match[1])
-
+  
   var books = {};
   var year;
-
+  
   for(var i = 0; i < match.length; i++) {
     var month = match[i].match(/<h2 class=\"entry\-header\">([\s\S]*?)<\/h2>/ig);
     if (month[0].match(/刊行予定/ig))
@@ -781,7 +798,7 @@ function get_book_info(input) {
     year= parseInt(month[0].match(/\d{4}年/ig)[0],10);
     month = month[0].match(/(\d+)月/ig);
     month = parseInt(month[0], 10);
-
+    
     var info = (match[i]).match(regexp_td);
     var month_book = [];
     for(var j = 0; j < info.length / 5; j++) {
@@ -817,7 +834,7 @@ function get_book_info(input) {
 }
 
 function lanove(input,username){
-
+  
   var body="";
   //username="jan";
   //input="";
@@ -827,7 +844,7 @@ function lanove(input,username){
     "list":"「lanove list」と入力してください\n現在お使い頂けるコマンドを一覧できます",
     "default":"「lanove (知りたい月とレーベル名を含む文)」と入力してください\nその月の、入力されたレーベルの発売予定をお調べいたします"
   }
-
+  
   if(input.indexOf("reg")!=-1){
     input=input.replace(/reg(\S*?)\s/ig,"");
     body=lanove_reg(input,username);
@@ -845,12 +862,12 @@ function lanove(input,username){
   else{
     body=get_lanove_info(input);
   }
-
+  
   return body;
 }
 
 function lanove_notify(){
-
+  
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("lanove");
   var data = sheet.getDataRange().getValues();
   var body="";
@@ -869,25 +886,25 @@ function lanove_notify(){
   var body="";
   var null_column_list=[];
   var i,index,j,k;
-
+  
   //スプレッドシートのlanove_regシートから知らせるタイトルと知らせる人を取得する
-
+  
   var sheet_reg = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("lanove_reg");
   var data_reg = sheet_reg.getDataRange().getValues();
   if(!(data_reg.length==1&&data_reg[0][0]==="")){
     for(var j=0;j<data_reg.length;j++){
       titles.push({"title":data_reg[j][0],"person":data_reg[j][1]});
     }
-
+    
   }
-
+  
   //spreadsheetに記入済みのタイトルを配列に格納する
-
+  
   for(j=0;j<data.length;j++){
     written_titles.push(data[j][0]);
   }
-
-
+  
+  
   //各レーベルについて、発売情報を更新する
   for(i=0;i<input.length;i++){
     k=0;
@@ -900,16 +917,16 @@ function lanove_notify(){
         continue;
       }
     }while(k<10)
-
+      
       for(var month in books){
         for(j=0;j<books[month].length;j++){
-
+          
           if(written_titles.indexOf(books[month][j]["title"])==-1||(data.length==1&&data[0][0]==="")){
-
+            
             for (k=0;k<titles.length;k++){
-
+              
               if(books[month][j]["title"].indexOf(titles[k]["title"])!=-1){
-
+                
                 index=0;
                 while(array.indexOf(index)!=-1||(index<data.length&&data[index][0]!="")){index++;}
                 sheet.getRange(index+1, 0+1).setValue(books[month][j]["title"]);
@@ -925,15 +942,15 @@ function lanove_notify(){
         }
       }
   }
-
-
+  
+  
   data = sheet.getDataRange().getValues();
-
+  
   //  発売日が過去のものを削除する
   for(i=0;i<data.length;i++){
-
+    
     //    Logger.log("data["+i+"][1]:"+data[i][1]+",now_month:"+now_month+",data["+i+"][5]:"+data[i][5]+",now_year"+now_year)
-
+    
     if((data[i][5]<now_year||data[i][1]<now_month)||(data[i][0]==="")){
       null_column_list.unshift(i+1);
     }
@@ -943,21 +960,21 @@ function lanove_notify(){
       sheet.deleteRow(null_column_list[j]);
     }
   }
-
+  
   data = sheet.getDataRange().getValues();
   
   
   //発売日を通知していないものをslackで通知する。
   for(i=0;i<data.length;i++){
-
+    
     if(data[i][3]===0){
       body=data[i][1]+"月"+data[i][2]+"日に『"+data[i][0]+"』が発売されます!\n";
       slackpost_dm_team(domain(data[i][4]),data[i][4],body);
       sheet.getRange(i+1, 3+1).setValue(1);
     }
-  
+    
   }
-
+  
 }
 
 function lanove_reg(input,username){
@@ -965,18 +982,18 @@ function lanove_reg(input,username){
   //username="jan"
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("lanove_reg");
   var data = sheet.getDataRange().getValues();
-
+  
   var number_of_data=data.length;
   var index=0;
   var title;
   var body="";
   //inputからタイトルを取り出す
-
+  
   title=input.replace(/reg(\S+)\s|[\s　]/ig,"");
-
+  
   //スプレッドシートにタイトル、知らせる対象の人の名前を書き込む
   if(data[0][0]!=""){
-
+    
     while(index<number_of_data&&!(data[index][0]==title&&data[index][1]==username)&&data[index][0]!=""){
       index++;
     }
@@ -992,22 +1009,22 @@ function lanove_reg(input,username){
        sheet.getRange(1, 2).setValue(username);
        body="『"+title+"』を登録いたしました \n 新刊が発売予定のときにお知らせいたしますね! \n\n メイドちゃんより";
       }
-
+  
   return body;
-
+  
 }
 
 function lanove_all(username){
   //username="jan";
   var body="";
-
+  
   //lanoveシートから新刊情報を取得
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("lanove");
   var data = sheet.getDataRange().getValues();
-
+  
   //usernameにマッチするものだけをslackで通知する(ための文章を作る)
   for(var i=0;i<data.length;i++){
-
+    
     if(data[i][4]==username){
       body+=data[i][1]+"月"+data[i][2]+"日に『"+data[i][0]+"』\n";
     }
@@ -1017,7 +1034,7 @@ function lanove_all(username){
   }else{
     body+="が発売予定です!\n\n メイドちゃんより";
   }
-
+  
   return body;
 }
 
@@ -1032,12 +1049,12 @@ function get_lanove_info(input){
                    "http://ranobe-mori.net/label/fantasia-bunko/",
                    "http://ranobe-mori.net/label/mf-bunko-j/",
                    "http://ranobe-mori.net/label/sneaker-bunko/"];
-
+    
     var body  ="申し訳ありませんが、別のキーワードを入力してください。(\"来月の電撃文庫\"など。)\n現在お調べできるレーベルは、\n";
     for (var k=0;k<label.length;k++){
       body+=label[k]+"文庫\n";}
     body+="です!\n\n メイドちゃんより";
-
+    
     var books=[];
     var month=["今月","来月"];
     var today=new Date(),now_month=today.getMonth()+1;
@@ -1045,9 +1062,9 @@ function get_lanove_info(input){
     var label_index=-1;
     var month_index=-1;
     var err_cnt=0;
-
+    
     for(var i=0;i<label.length;i++){
-
+      
       if(input.toUpperCase().indexOf(label[i])!=-1){
         label_index=i;
         err_cnt=0;
@@ -1057,7 +1074,7 @@ function get_lanove_info(input){
         while(books==null&&err_cnt<10);
       }
     }
-
+    
     for(i=0;i<month.length;i++){
       if(input.indexOf(month[i])!=-1){
         month_index=i;
@@ -1065,23 +1082,23 @@ function get_lanove_info(input){
     }
     if(month_index==-1){
       month_index=0;}
-
+    
     if(label_index!=-1){
-
+      
       body=(now_month+month_index)+"月"+books[now_month+month_index][0]["day"]+"日に"+label[label_index]+"文庫から、\n";
       for(var j=0;j<books[now_month+month_index].length;j++){
         body+="『"+books[now_month+month_index][j]["title"]+"』\n";
       }
       body+="が発売されます!\n\nメイドちゃんより";
     }
-
-
+    
+    
     return body;
   }catch(e){
     return "エラーです!\n\nメイドちゃんより"
   }
   /*
-
+  
   return ;*/
   //
 }
@@ -1089,7 +1106,7 @@ function get_lanove_info(input){
 
 
 function get_web_search(keyword) {
-
+  
   keyword = encodeURIComponent(keyword);
   var response = UrlFetchApp.fetch('https://www.google.co.jp/search?q='+keyword);
   var regexp   = /<h3 class=\"r\">(<a href=\"\/url[\s\S]*?)<\/h3>/gi;
@@ -1107,7 +1124,7 @@ function get_web_search(keyword) {
 }
 
 function google_search(input){
-
+  
   var body="検索結果は、\n";
   var search_result;
   var retryCount=0;
@@ -1118,15 +1135,15 @@ function google_search(input){
     catch(e)
     {retryCount++;
      continue;}
-
+    
   }while(retryCount<10);
-
+  
   for(var i=0;i<4;i++){
     body+=(i+1)+" "+search_result[i]["title"]+" :\n "+decodeURIComponent(search_result[i]["link"])+"\n";
   }
-
+  
   body+="です!\n\nメイドちゃんより";
-
+  
   return body;
 }
 
@@ -1176,9 +1193,9 @@ function setTrigger(input, team_domain, channelID) {
     s_i = data.length;
   }
   var res_triggers = ScriptApp.getProjectTriggers();
-
+  
   //トリガーの削除
-
+  
   var trigger = ScriptApp.newTrigger('alarm').timeBased().at(timer).create();
   sheet.getRange(s_i+1, 0+1).setValue(trigger.getUniqueId());
   sheet.getRange(s_i+1, 1+1).setValue(team_domain);
@@ -1187,7 +1204,7 @@ function setTrigger(input, team_domain, channelID) {
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
   sheet.getRange(1, 1, lastRow, lastCol).sort([{column: 4, ascending: true}]);
-
+  
   return 'アラームをセットしました。\n時間になったらお知らせいたします。\n\nメイドちゃんより';
 }
 
@@ -1197,9 +1214,9 @@ function alarm() {
   var response = '時間です!\n\nメイドちゃんより';
   var team_domain = data[0][1];
   var channelId = data[0][2];
-
+  
   slackpost_team(team_domain,channelId,response);
-
+  
   var res_triggers = ScriptApp.getProjectTriggers();
   for(var i=0; i < res_triggers.length; i++) {
     if(res_triggers[i].getUniqueId() == data[0][0]) {
@@ -1221,9 +1238,9 @@ function deleteTrigger() {
 
 function task(input, team_domain, channelID, user_name) {
   var body="";
-
+  
   input=input.replace(/\-/ig,"");
-
+  
   if(input.indexOf("set")!=-1){
     body=setTask(input,team_domain, channelID, user_name);
   }
@@ -1235,7 +1252,7 @@ function task(input, team_domain, channelID, user_name) {
   } else {
     body=task_format();
   }
-
+  
   return body;
 }
 
@@ -1246,7 +1263,7 @@ function task_format() {
 function setTask(input, team_domain, channelID, user_name) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('task');
   var data = sheet.getDataRange().getValues();
-
+  
   var date = new Date();
   var task;
   if (!input.match(/(\d+)月(\d+)日に([\s\S]*?)をセット/ig)) {
@@ -1270,7 +1287,7 @@ function setTask(input, team_domain, channelID, user_name) {
     task = task[0].replace("に", "");
     task = task.replace("をセット", "");
   }
-
+  
   //var trigger = ScriptApp.newTrigger('task').timeBased().at(date).create();
   var s_i = 0;
   if(data.length == 1) {
@@ -1307,7 +1324,7 @@ function showTask(user_name) {
     response = 'セットされているタスクはありません。';
   else
     response = 'セットされているタスクは以下の'+String(u_task_num)+'件です。\n\n'+response;
-
+  
   //Logger.log(response);
   return response;
 }
@@ -1361,7 +1378,7 @@ function alartTask() {
   } else {
     s_i = data.length;
   }
-
+  
   if (s_i) {
     name_list[0] = data[0][2];
     for (var i = 1; i < s_i; i++) {
@@ -1382,7 +1399,7 @@ function alartTask() {
   }
   //Logger.log(s_i);
   //Logger.log(name_list);
-
+  
   //一週間以内のタスクを表示
   for (var i = 0; i < name_list.length; i++) {
     response[i] = '';
@@ -1403,7 +1420,7 @@ function alartTask() {
     }
     response[i] = '@' + user_name + 'さま\n' + response[i];
   }
-
+  
   //今日締め切りのタスクを格納
   for (var i = 0; i < name_list.length; i++) {
     var user_name = name_list[i];
@@ -1421,7 +1438,7 @@ function alartTask() {
       response[i] += '今日締め切りのタスクはありません\n\n';
     }
   }
-
+  
   //期限切れのタスクを表示
   for (var i = 0; i < name_list.length; i++) {
     var user_name = name_list[i];
@@ -1439,13 +1456,13 @@ function alartTask() {
       response[i] += '期限切れのタスクはありません\n\n';
     }
   }
-
+  
   /*
   for(var i = 0; i < name_list.length; i++) {
   Logger.log(response[i]);
   }
   */
-
+  
   for(var i = 0; i < name_list.length; i++) {
     var team_domain;
     var channelId;
@@ -1461,9 +1478,9 @@ function alartTask() {
 
 function schedule(input, team_domain, channelID, user_name) {
   var body="";
-
+  
   input=input.replace(/\-/ig,"");
-
+  
   if(input.indexOf("set")!=-1){
     body=setSchedule(input,team_domain, channelID, user_name);
   }
@@ -1475,7 +1492,7 @@ function schedule(input, team_domain, channelID, user_name) {
   } else {
     body=scheduleFormat();
   }
-
+  
   return body;
 }
 
@@ -1486,7 +1503,7 @@ function scheduleFormat() {
 function setSchedule(input, team_domain, channelID, user_name) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('schedule');
   var data = sheet.getDataRange().getValues();
-
+  
   var start = new Date();
   var end = new Date();
   var schedule;
@@ -1495,7 +1512,7 @@ function setSchedule(input, team_domain, channelID, user_name) {
     //Logger.log('無効な入力');
     return '無効な入力です。';
   }
-
+  
   var start_hour = input.match(/(\d+)時/ig)[0].replace("時","");
   start.setHours(start_hour);
   var start_mini = input.match(/(\d+)分/ig)[0].replace("分","");
@@ -1508,7 +1525,7 @@ function setSchedule(input, team_domain, channelID, user_name) {
   end.setMinutes(end_mini);
   end.setSeconds(0);
   end.setMilliseconds(0);
-
+  
   if (input.match(/(\d+)月(\d+)日/ig)) {
     var month = input.match(/(\d+)月/ig)[0].replace("月","");
     month = parseInt(month) - 1;
@@ -1538,11 +1555,11 @@ function setSchedule(input, team_domain, channelID, user_name) {
     //念のため
     return '無効な値です。';
   }
-
+  
   schedule = input.match(/まで([\s\S]*?)をセット/ig);
   schedule = schedule[0].replace("まで", "");
   schedule = schedule.replace("をセット", "");
-
+  
   //var trigger = ScriptApp.newTrigger('task').timeBased().at(date).create();
   var s_i = 0;
   if(data.length == 1) {
@@ -1551,7 +1568,7 @@ function setSchedule(input, team_domain, channelID, user_name) {
   } else {
     s_i = data.length;
   }
-
+  
   sheet.getRange(s_i+1, 0+1).setValue(team_domain);
   sheet.getRange(s_i+1, 1+1).setValue(channelID);
   sheet.getRange(s_i+1, 2+1).setValue(user_name);
@@ -1583,7 +1600,7 @@ function showSchedule(user_name) {
     response = 'セットされているスケジュールはありません。';
   else
     response = 'セットされているスケジュールは以下の'+String(u_sche_num)+'件です。\n\n'+response;
-
+  
   //Logger.log(response);
   return response;
 }
@@ -1642,14 +1659,14 @@ function alartSchedule() {
   var name_list = new Array();
   var is_same_name = 0;
   var s_i = 0;
-
+  
   if(data.length == 1) {
     if(data[0][0])
       s_i = 1;
   } else {
     s_i = data.length;
   }
-
+  
   //全usernameを取得
   if (s_i) {
     name_list[0] = data[0][2];
@@ -1667,7 +1684,7 @@ function alartSchedule() {
     //s_iが0だと表示する必要ない
     return;
   }
-
+  
   //明日のタスクを表示
   for (var i = 0; i < name_list.length; i++) {
     response[i] = '';
@@ -1689,7 +1706,7 @@ function alartSchedule() {
     }
     response[i] = '@' + user_name + 'さま\n' + response[i];
   }
-
+  
   //今日締め切りのタスクを格納
   for (var i = 0; i < name_list.length; i++) {
     var user_name = name_list[i];
@@ -1707,8 +1724,8 @@ function alartSchedule() {
       response[i] += '今日の予定はありません\n\n';
     }
   }
-
-
+  
+  
   for(var i = 0; i < name_list.length; i++) {
     var team_domain;
     var channelId;
@@ -1731,10 +1748,10 @@ function Email(input){
   var split =input.match(/(.*?)\s/ig);
   var recipient=split[0].replace(/に\s/ig,"");
   var mail_body=input.replace(split[0],"").replace(split[1],"");
-
+  
   GmailApp.sendEmail(user_address(recipient), split[1], mail_body);
   var body=user_address(recipient)+"さまに、件名を"+split[1]+"として、\n\n"+mail_body+"\n\nと、お送りいたしました!\n\nメイドちゃんより";
-
+  
   return body;
 }
 
@@ -1744,11 +1761,11 @@ function fx(input){
   input=input.replace("ドル","USD");
   input=input.replace("円","JPY");
   input=input.replace("ユーロ","EUR");
-
+  
   var body="";
   var CurrencyList=["USD","NZD","ZAR","JPY","CAD","GBP","EUR","AUD","CHF"]
   var currencies=input.match(/USD|NZD|ZAR|JPY|CAD|GBP|EUR|AUD|CHF/ig);
-
+  
   if(currencies==null){
     body="ただいまお調べできる通貨は以下の通りです!\n"
     for (var i in CurrencyList){body+=CurrencyList[i]+"\n" }
@@ -1758,37 +1775,37 @@ function fx(input){
   }else if(currencies.length==1){
     return "fx [知りたい通貨] [換算する通貨] のように入力してください!\n\nメイドちゃんより";
   }
-
+  
   var target=currencies[0];
   var unit=currencies[1];
   var rates=GetFXRate(target,unit);
-
+  
   body="ただいま1 "+target+"は、"+(rates["isExact"]? "": "大まかな値ですが、")+"\n"+"askが"+rates["ask"].toPrecision(5)+" "+unit+"\n"+"bidが"+rates["bid"].toPrecision(5)+" "+unit+"です!\n";
   body+="\nメイドちゃんより"
-
+  
   return body;
 }
 
 function GetFXRate(target,unit) {
-
+  
   //target="USD";
   //target="EUR";
   //unit="JPY";
   //unit="USD";
-
+  
   target=target.toUpperCase();
   unit=unit.toUpperCase();
   var CurrencyPairCode = target+unit;
   var rate_list={"JPY":{"ask":1.0,"bid":1.0}};
   var isExact=false;
-
+  
   var response = UrlFetchApp.fetch("http://www.gaitameonline.com/rateaj/getrate");
   var result=JSON.parse(response.getContentText())["quotes"];
   var bid_rate=0,ask_rate=0;
   //Logger.log(result)
-
+  
   for (var i in  result){
-
+    
     var paircode=result[i]["currencyPairCode"]
     var target_r= paircode.slice(0,3);
     var unit_r=paircode.slice(3,6);
@@ -1806,18 +1823,18 @@ function GetFXRate(target,unit) {
       isExact=true;
     }
   }
-
-
+  
+  
   if(!ask_rate){
     ask_rate=rate_list[target]["ask"]/rate_list[unit]["ask"];
     bid_rate=rate_list[target]["bid"]/rate_list[unit]["bid"];
   }
-
+  
   ask_rate=parseFloat(ask_rate.toPrecision(5));
   bid_rate=parseFloat(bid_rate.toPrecision(5));
-
+  
   //Logger.log({"ask":ask_rate,"bid":bid_rate,"isExact":isExact})
-
+  
   return {"ask":ask_rate,"bid":bid_rate,"isExact":isExact}
 }
 
@@ -1836,7 +1853,7 @@ function news(input, team_domain, channelID, user_name) {
     return response;
   }
   var response = '';
-
+  
   //ニュースを定期的に出力するかどうかの設定のコマンドの時
   if (input.indexOf('setting')!=-1) {
     response = news_setting(input, team_domain, channelID, user_name);
@@ -1844,7 +1861,7 @@ function news(input, team_domain, channelID, user_name) {
   } else if (input.indexOf('delete')!=-1) {
     response = news_delete(team_domain, channelID, user_name);
   }
-
+  
   //newsのコマンドを確認し、それにあった答えを出力
   for (var i = 0; i < topics.length-2; i++) {
     if(input.indexOf(topics[i])!=-1||input.indexOf(i)!=-1){
@@ -1859,7 +1876,7 @@ function news(input, team_domain, channelID, user_name) {
       }
     }
   }
-
+  
   if (!response) {
     response = 'newsのコマンドの一覧です。ご確認くださいませ。\n';
     for (var i = 0; i < topics.length; i++) {
@@ -1883,21 +1900,21 @@ function news_setting(input, team_domain, channelID, user_name) {
   } else {
     s_i = data.length;
   }
-
+  
   //user_nameがnewsのdataの中に入っているか確認する
   for (var i = 0; i < data.length; i++) {
     if (user_name == data[i][2]) {
       position = i;
     }
   }
-
+  
   //topicsに入っているもので当てはまるものを取ってくる
   for (var i = 0; i < topics.length; i++) {
     if (input.match(topics[i])) {
       user_topics.push(topics[i]);
     }
   }
-
+  
   if (position == -1 && user_topics.length != 0) {
     sheet.getRange(s_i+1, 0+1).setValue(team_domain);
     sheet.getRange(s_i+1, 1+1).setValue(channelID);
@@ -1923,14 +1940,14 @@ function news_delete(team_domain, channelID, user_name) {
   } else {
     s_i = data.length;
   }
-
+  
   //user_nameがnewsのdataの中に入っているか確認する
   for (var i = 0; i < data.length; i++) {
     if (user_name == data[i][2]) {
       position = i;
     }
   }
-
+  
   if (position != -1) {
     sheet.deleteRow(position+1);
     return '削除完了しました。\n\nメイドちゃんより';
@@ -1940,11 +1957,11 @@ function news_delete(team_domain, channelID, user_name) {
 }
 
 function anime(input,username){
-
+  
   //input=" search gintama"
-
+  
   var body="";
-
+  
   if(input.indexOf("reg")!=-1){
     input=input.replace(/reg(.*?)\s/ig,"");
     body+=anime_reg(input,username);
@@ -1954,31 +1971,31 @@ function anime(input,username){
   }else{
     body="anime search [検索したい単語]か\n anime reg [キーワード],[タイトル]\n と入力してください!"
   }
-
+  
   //Logger.log(body)
   return body;
 }
 
 function anime_reg(text,username){
-
+  
   //text = "anime reg gamers,ゲーマーズ! 二期";
-
+  
   //種々の変数
   //  var myRegExp=/\s(\S+?)/ig;
   var sheet=SpreadsheetApp.getActiveSpreadsheet().getSheetByName("anime");
   var data= sheet.getDataRange().getValues();
   var keyword="",title="";
-
+  
   text=text.replace(/anime\s|reg(\S*)\s|^\s+/ig,"").split(",");
-
+  
   if(text.length!=2){
     Logger.log("error")
     return "正しい形式で入力してください\n\nメイドちゃんより"
   }
-
+  
   keyword=text[0];
   title=text[1];
-
+  
   if(data[0][0]===""&&data.length==1){
     sheet.getRange(1, 1).setValue(keyword);
     sheet.getRange(1, 2).setValue(title);
@@ -1987,19 +2004,19 @@ function anime_reg(text,username){
   {
     data.push([keyword,title,username]);
   }
-
+  
   sheet.getRange(1,1,data.length,data[0].length).setValues(data);
-
+  
   return "キーワードが"+keyword+"、タイトルが"+title+"として登録しました!\n\nメイドちゃんより";
-
+  
 }
 
 function anime_search(text){
-
+  
   //text=" gintama";
-
+  
   var anime=text.replace(/anime\s|search\s|^\s+/ig,"");
-
+  
   var rss ="https://torrents.ohys.net/download/rss.php?dir=new"+"&q="+anime;
   try{
     var response = UrlFetchApp.fetch(rss);}
@@ -2013,13 +2030,13 @@ function anime_search(text){
   var title,item,link,titles=[];
   var body="検索結果は";
   var myRegexp =/<td><a rel="nofollow" href="(.*)" target="_blank">(.*)<\/a><\/td>/ig;
-
-
+  
+  
   for(var i=0;i<items.length;i++){
     item=items[i];
     title=item.getChild('title').getText();
     title=title.replace(/\[Ohy(.+)\]|\-([^-]*?)\((.*?)torrent/ig,"");
-
+    
     if(titles==null ||titles.indexOf(title)==-1){
       titles.push(title);
     }
@@ -2027,7 +2044,7 @@ function anime_search(text){
       link=item.getChild('link').getText();
     }
   }
-
+  
   if(titles.length==0){
     body+="ないよ";
   }else{
@@ -2041,10 +2058,10 @@ function anime_search(text){
 }
 
 function anime_notify() {
-
+  
   var rss ="https://torrents.ohys.net/download/rss.php?dir=new";
   //var rss ="https://torrents.ohys.net/download/rss.php?dir=new"+"&q=umaru";
-
+  
   try{
     var response = UrlFetchApp.fetch(rss);}
   catch(e){
@@ -2056,36 +2073,36 @@ function anime_notify() {
   var items = xml.getRootElement().getChildren('channel')[0].getChildren('item');
   var title,item,anime,link;
   var myRegexp =/<td><a rel="nofollow" href="(.*)" target="_blank">(.*)<\/a><\/td>/ig;
-
+  
   var sheet= SpreadsheetApp.getActiveSpreadsheet().getSheetByName("anime");
   var data= sheet.getDataRange().getValues();
-
+  
   var animes=[];
   var animes_j=[];
   var pubdate,date=new Date();
   var today=new Date(),pubdate_string;
   date.setMinutes(today.getMinutes()-6);
   //date.setHours(today.getHours()-1);
-
+  
   for(var i = 0;i<data.length;i++){
     animes.push(data[i][0].toLowerCase());
   }
-
+  
   for(var i=0;i<data.length;i++){
     animes_j.push(data[i][1].toLowerCase());
   }
-
+  
   for(var i=0;i<items.length;i++){
     item=items[i];
     title=item.getChild('title').getText().toLowerCase();
     pubdate_string=item.getChild('pubDate').getText();
     pubdate_string=pubdate_string.replace(/KST/ig,"+0900");
     pubdate=new Date(pubdate_string);
-
+    
     title=title.replace(/\[(.*?)\]|.mp4|.torrent|\((.*?)\)/ig,"")
-
+    
     Logger.log(title)
-
+    
     for(var index=0;index<animes.length;index++){
       anime=animes[index];
       var AnimeWords=anime.split(" ");
@@ -2100,24 +2117,24 @@ function anime_notify() {
       Logger.log("Included:"+Included);
       Logger.log("date<=pubdate"+date<=pubdate);
       */
-
+      
       if(Included &&date<=pubdate){
         //Logger.log("判定成功!");
         link=item.getChild('link').getText();
         title=title.replace(/(.*)\-/ig,animes_j[index]+"-");
-
+        
         if(title.indexOf("-")==-1)
         {
           title=animes_j[index]+" 全話";
         }
-
+        
         try{var volume=title.match(/\d+/ig);
             volume = volume[volume.length-1];
             title=title.replace(/-(.*?)\d+/ig,volume+"話");
            }catch(e){
            }
         title=title.replace("end","(最終話)");
-
+        
         slackpost_dm_team(domain(data[index][2]),data[index][2],title+"がアップロードされました!\nダウンロードリンク:"+link+"\n\nメイドちゃんより");
       }
     }
@@ -2136,14 +2153,14 @@ function ScheduleNotify(){
   var a_task_num;
   var u_task_num;
   var s_i = 0;
-
+  
   if(data.length == 1) {
     if(data[0][0])
       s_i = 1;
   } else {
     s_i = data.length;
   }
-
+  
   a_task_num = s_i;
   //全usernameを取得
   if (s_i) {
@@ -2162,7 +2179,7 @@ function ScheduleNotify(){
     //s_iが0だと表示する必要ない
     return;
   }
-
+  
   for (var i = 0; i < name_list.length; i++) {
     response[i] = '';
     var user_name = name_list[i];
@@ -2183,13 +2200,13 @@ function ScheduleNotify(){
     }
     //Logger.log(response[i]);
   }
-
+  
   for (var i = 0; i < response.length; i++) {
     if (response[i])
       slackpost_team(team_domain[i],channelId[i], response[i]);
   }
   //slackpost_team(team_domain,channelId,response);
-
+  
   /*
   var res_triggers = ScriptApp.getProjectTriggers();
   for(var i=0; i < res_triggers.length; i++) {
@@ -2203,22 +2220,22 @@ function ScheduleNotify(){
 }
 
 function notify(){
-
+  
   try{anime_notify();
      }catch(e_ignored){};
-
+  
   try{
     taqbin_get();
   }catch(e_ignored){};
-
+  
   try{
     taqbin_notify();
   }catch(e_ignored){};
-
+  
 }
 
 function moon(){
-
+  
   var date=new  Date();
   //date.setMonth(date.getMonth()+1);
   //date.setDate(31);
@@ -2228,7 +2245,7 @@ function moon(){
   arraysort(FMDs);
   var today=date.getDate();
   var FMD;
-
+  
   if(today<FMDs[0]){
     FMD=FMDs[0];
   }else if(FMDs.length==2&&today<FMDs[1]){
@@ -2239,15 +2256,15 @@ function moon(){
     arraysort(FMDs);
     FMD=FMDs[0];
   }
-
+  
   body="次の満月は"+(date.getMonth()+1)+"月"+FMD+"日です!";
-
+  
   return body;
-
+  
 }
 
 function GetMoonPhaseinMonth(Month){
-
+  
   var date=new Date();
   //Month=4;
   var url="";
@@ -2256,7 +2273,7 @@ function GetMoonPhaseinMonth(Month){
   var moon_phases;
   var phases={};
   var FullMoonDay=[];
-
+  
   for(var i=1;i<29;i+=14){
     url ="http://labs.bitmeister.jp/ohakon/api/?mode=moon_phase&year="+date.getFullYear()+"&month="+Month+"&day="+i+"&hour=19&days=14";
     result = UrlFetchApp.fetch(url);
@@ -2266,7 +2283,7 @@ function GetMoonPhaseinMonth(Month){
       phases[parseInt(key)+i]=parseFloat(moon_phases[key].getText());
     }
   }
-
+  
   for(var i=29;i<=31;i++){
     url ="http://labs.bitmeister.jp/ohakon/api/?mode=moon_phase&year="+date.getFullYear()+"&month="+Month+"&day="+i+"&hour=19";
     result = UrlFetchApp.fetch(url);
@@ -2278,31 +2295,31 @@ function GetMoonPhaseinMonth(Month){
       phases[i]=parseFloat(parsed.getRootElement().getChild("moon_phase").getText());
     }
   }
-
+  
   return phases;
-
+  
 }
 
 function GetFullMoonDayinMonth(Month){
   var phases = GetMoonPhaseinMonth(Month);
   var FullMoonDay=[];
-
+  
   for(var i in phases){
     if(Math.abs(phases[i]-180)<7){FullMoonDay.push(i);}
   }
   return FullMoonDay;
-
+  
 }
 
 function GFMDiMfromPhases(phases){
-
+  
   var FullMoonDay=[];
-
+  
   for(var i in phases){
     if(Math.abs(phases[i]-180)<7){FullMoonDay.push(i);}
   }
   return FullMoonDay;
-
+  
 }
 
 
@@ -2320,12 +2337,12 @@ function GFMDiMfromPhases(phases){
 
 
 function slackpost(channelId,body) {
-
+  
   var prop = PropertiesService.getScriptProperties().getProperties();
-
+  
   //slackApp インスタンスの取得
   var slackApp = SlackApp.create(prop.token);
-
+  
   //投稿
   slackApp.chatPostMessage(channelId, body, {
     username : "メイドちゃん"
@@ -2335,23 +2352,23 @@ function slackpost(channelId,body) {
 }
 
 function SlackPost_dm(user_name,body){
-
+  
   var prop = PropertiesService.getScriptProperties().getProperties();
   body=encodeURIComponent(body);
-
+  
   var url="https://slack.com/api/chat.postMessage?token="+encodeURIComponent(prop.token)+
     "&channel="+"%40"+user_name+"&username=maidchan&text="+body+"&link_names=true&as_user=true";
   UrlFetchApp.fetch(url);
-
+  
 }
 
 function slackpost_team(team_domain,channelId,body) {
-
+  
   var prop = PropertiesService.getScriptProperties().getProperties();
-
+  
   //slackApp インスタンスの取得
   var slackApp = SlackApp.create(prop["token"+team_domain]);
-
+  
   //投稿
   slackApp.chatPostMessage(channelId, body, {
     username : "メイドちゃん"
@@ -2361,22 +2378,22 @@ function slackpost_team(team_domain,channelId,body) {
 }
 
 function slackpost_dm_team(team_domain,user_name,body){
-
+  
   var prop = PropertiesService.getScriptProperties().getProperties();
   body=encodeURIComponent(body);
-
+  
   var url="https://slack.com/api/chat.postMessage?token="+encodeURIComponent(prop["token"+team_domain])+
     "&channel="+"%40"+user_name+"&username=maidchan&text="+body+"&link_names=true&as_user=true";
   UrlFetchApp.fetch(url);
-
+  
   return "success!";
-
+  
 }
 
 function Verify_token(team_domain,token){
-
+  
   var prop = PropertiesService.getScriptProperties().getProperties();
-
+  
   if(prop["verifytoken"+team_domain]==token){
     return true;
   }
@@ -2437,16 +2454,16 @@ function get_appdata(url) {
   var response = UrlFetchApp.fetch(url);
   //jsonデータを配列に格納
   var json = JSON.parse(response.getContentText());
-
+  
   return json;
 }
 
 function diff_day(today,target){
-
+  
   var diff=target.getTime()-today.getTime();
-
+  
   var diff_days=Math.floor(diff/(24*60*60*1000));
-
+  
   return diff_days+1;
 }
 
@@ -2469,7 +2486,7 @@ function split_4kilobytes(string) {
   var bytes = getBytes(string);
   var offset = 0;
   var chunk = 3000;
-
+  
   var result = new Array();
   var str_array = string.split('\n');
   while(offset < str_array.length) {
@@ -2494,13 +2511,13 @@ function domain(username){
       included=1;
       return domain;}
   }
-
+  
   if(included=0){return 0;}
-
+  
 }
 
 function user_address(username){
-
+  
   var addresses={
     jan:"wasedakaisei@gmail.com",
     miya:"ka380npe41@gmail.com"
@@ -2515,22 +2532,22 @@ function user_address(username){
 
 function string_array_search(string,array){
   //stringに含まれる配列の要素の、最初の番号を返す関数
-
+  
   //string="abcd";
   //array=["1","2","a"];
-
+  
   for(var i=0;i<array.length;i++){
     if(string.indexOf(array[i])!=-1){
       return i;
     }
   }
   return -1;
-
+  
 }
 
 
 function DataWrite(sheet,data){
-
+  
   sheet.getRange(1, 1,data.length,data[0].length).setValues(data);
 }
 
@@ -2552,6 +2569,6 @@ function arraysort(array,number){
 
 
 function hoge(body){
-
-
+  
+  
 }
